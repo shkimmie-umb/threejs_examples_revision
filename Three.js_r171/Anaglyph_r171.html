@@ -1,0 +1,172 @@
+<!-- Ambient Light 넣어줘야 동작하는 차이 -->
+ <!-- Stats 위치 -->
+  <!-- AnaglyphEffect 효과 좀 다름 -->
+<!-- Stats 용량 보여주는게 생겼음 -->
+
+
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Anaglyph (Three.js)</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/base.css">
+    <!-- <link rel="stylesheet" href="css/jquery-ui.css">
+    <link rel="stylesheet" href="css/info.css"> -->
+</head>
+<body>
+    <script src="js/jquery-1.9.1.js"></script>
+    <script src="js/jquery-ui.js"></script>
+    <link rel=stylesheet href="css/jquery-ui.css" />
+    <link rel=stylesheet href="css/info.css"/>
+    <script src="js/info.js"></script>
+    <div id="infoButton"></div>
+    <div id="infoBox" title="Demo Information" style="display: none;">
+        Requires red-blue 3D glasses.<br>
+        This three.js demo is part of a collection at
+        <a href="http://stemkoski.github.io/Three.js/">http://stemkoski.github.io/Three.js/</a>
+    </div>
+    <div id="ThreeJS" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%;"></div>
+
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@latest/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@latest/examples/jsm/"
+      }
+    }
+    </script>
+
+    
+    <script type="module">
+        // import * as THREE from 'https://cdn.jsdelivr.net/npm/three@latest/build/three.module.js';
+        // import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/controls/OrbitControls.js';
+        // import { AnaglyphEffect } from 'https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/effects/AnaglyphEffect.js';
+        // import Stats from 'https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/libs/stats.module.js';
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js';
+        import Stats from 'three/addons/libs/stats.module.js';
+
+        var container, scene, camera, renderer, controls, stats, effect;
+        const clock = new THREE.Clock();
+
+        init();
+        animate();
+
+        function init() {
+            // SCENE
+            console.log("THREE.js version:", THREE.REVISION);
+            scene = new THREE.Scene();
+
+            // CAMERA
+            const SCREEN_WIDTH = window.innerWidth;
+            const SCREEN_HEIGHT = window.innerHeight;
+            const VIEW_ANGLE = 45;
+            const ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT;
+            const NEAR = 0.1;
+            const FAR = 20000;
+            camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+            scene.add(camera);
+            camera.position.set(0, 150, 400);
+            camera.lookAt(scene.position);
+
+            // RENDERER
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+            container = document.getElementById('ThreeJS');
+            container.appendChild(renderer.domElement);
+
+            // CONTROLS
+            controls = new OrbitControls(camera, renderer.domElement);
+
+            // STATS
+            stats = new Stats();
+            
+            stats.dom.style.position = 'absolute';
+            stats.dom.style.top = '80px';
+            // stats.dom.style.bottom = '100px';
+            stats.dom.style.left = '0px'; // Set it to the left corner
+            stats.dom.style.zIndex = 100;
+            container.appendChild(stats.dom);
+            
+
+
+            // LIGHT
+            const light = new THREE.PointLight(0xffffff, 1);
+            light.position.set(-100, 200, 100);
+            scene.add(light);
+
+            scene.add( new THREE.AmbientLight( 0x666666 ) );
+
+            const dirLight1 = new THREE.DirectionalLight( 0xffddcc, 3 );
+            dirLight1.position.set( 1, 0.75, 0.5 );
+            scene.add( dirLight1 );
+
+            const dirLight2 = new THREE.DirectionalLight( 0xccccff, 3 );
+            dirLight2.position.set( - 1, 0.75, - 0.5 );
+            scene.add( dirLight2 );
+
+            // FLOOR
+            const loader = new THREE.TextureLoader();
+            const floorTexture = loader.load('images/checkerboard.jpg');
+            floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+            floorTexture.repeat.set(10, 10);
+            const floorMaterial = new THREE.MeshBasicMaterial({ map: floorTexture, side: THREE.DoubleSide });
+            const floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.position.y = -0.5;
+            floor.rotation.x = Math.PI / 2;
+            scene.add(floor);
+
+            // SKYBOX
+            const skyBoxGeometry = new THREE.BoxGeometry(10000, 10000, 10000);
+            const skyBoxMaterial = new THREE.MeshBasicMaterial({ color: 0x9999ff, side: THREE.BackSide });
+            const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
+            scene.add(skyBox);
+
+            // CUBE
+            const cubeGeometry = new THREE.BoxGeometry(50, 50, 50);
+            const cubeMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
+            const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+            cube.position.set(0, 26, 0);
+            scene.add(cube);
+
+            var cube2 = new THREE.Mesh( cubeGeometry, cubeMaterial );
+	        cube2.position.set(-40,26,70);
+	        scene.add(cube2);
+
+            var width_ana = window.innerWidth;
+	        var height_ana = window.innerHeight;
+
+            // ANAGLYPH EFFECT
+            effect = new AnaglyphEffect(renderer);
+            // effect.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+            effect.setSize(width_ana, height_ana);
+
+            // INFO BUTTON
+            document.getElementById('infoButton').addEventListener('click', () => {
+                const infoBox = document.getElementById('infoBox');
+                infoBox.style.display = infoBox.style.display === 'none' ? 'block' : 'none';
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            render();
+            update();
+        }
+
+        function update() {
+            controls.update();
+            stats.update();
+        }
+
+        function render() {
+            effect.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

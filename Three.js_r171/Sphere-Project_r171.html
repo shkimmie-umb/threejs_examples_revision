@@ -1,0 +1,265 @@
+<!-- http -> https errors fix 스크린샷 넣기
+ambientlight behavior fix -->
+
+
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Spherical Projection</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <link rel="stylesheet" href="css/base.css"/>
+</head>
+<body>
+
+	<script src="js/jquery-1.9.1.js"></script>
+    <script src="js/jquery-ui.js"></script>
+    <link rel=stylesheet href="css/jquery-ui.css" />
+    <link rel=stylesheet href="css/info.css"/>
+    <script src="js/info.js"></script>
+    <div id="infoButton"></div>
+    <div id="infoBox" title="Demo Information" style="display: none;">
+        Spherical Projection demo, part of a collection at
+		<a href="http://stemkoski.github.io/Three.js/">http://stemkoski.github.io/Three.js/</a>
+    </div>
+
+	<div id="ThreeJS" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%;"></div>
+<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@latest/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@latest/examples/jsm/"
+  }
+}
+</script>
+
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import Stats from 'three/addons/libs/stats.module.js';
+// import { KeyboardState } from './js/THREEx.KeyboardState.js';
+// import { FullScreen } from './js/THREEx.FullScreen.js';
+// import { WindowResize } from './js/THREEx.WindowResize.js';
+// import { Detector } from 'three/Detector.js';
+// import { WebGL } from 'three/addons/capabilities/WebGL.js';
+
+let container, scene, camera, renderer, controls, stats;
+let keyboard = new THREEx.KeyboardState();
+let clock = new THREE.Clock();
+
+// custom global variables
+let mesh;
+
+init();
+animate();
+
+function init() {
+	console.log("THREE.js version:", THREE.REVISION);
+	// SCENE
+  scene = new THREE.Scene();
+  
+  // CAMERA
+  const SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+  const VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
+  camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+  scene.add(camera);
+  camera.position.set(0, 150, 400);
+  camera.lookAt(scene.position);  
+  
+  // RENDERER
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+  container = document.getElementById('ThreeJS');
+  container.appendChild(renderer.domElement);
+  
+  // EVENTS
+  window.addEventListener('resize', () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  });
+
+  // CONTROLS
+  controls = new OrbitControls(camera, renderer.domElement);
+  
+  // STATS
+	stats = new Stats();
+	stats.dom.style.position = 'absolute';
+	stats.dom.style.top = '80px';
+	// stats.dom.style.bottom = '100px';
+	stats.dom.style.left = '0px'; // Set it to the left corner
+	stats.dom.style.zIndex = 100;
+	container.appendChild(stats.dom);
+  
+  // LIGHT
+  const light = new THREE.PointLight(0xffffff);
+  light.position.set(100, 250, 100);
+  scene.add(light);
+
+  scene.add( new THREE.AmbientLight( 0x666666 ) );
+
+	const dirLight1 = new THREE.DirectionalLight( 0xffddcc, 3 );
+	dirLight1.position.set( 1, 0.75, 0.5 );
+	scene.add( dirLight1 );
+
+	const dirLight2 = new THREE.DirectionalLight( 0xccccff, 3 );
+	dirLight2.position.set( - 1, 0.75, - 0.5 );
+	scene.add( dirLight2 );
+  
+  // SKYBOX (using BoxGeometry instead of CubeGeometry)
+  const skyBoxGeometry = new THREE.BoxGeometry(10000, 10000, 10000);
+  const skyBoxMaterial = new THREE.MeshBasicMaterial({ color: 0x6666cc, side: THREE.BackSide });
+  const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
+  scene.add(skyBox);
+  
+  // SPHERE
+  const r = 50;
+  scene.add(new THREE.AxesHelper(r * 1.5));
+  
+  const geometry = new THREE.SphereGeometry(r, 32, 16);
+  const material = new THREE.MeshLambertMaterial({ color: 0x888888 });
+  const sphere = new THREE.Mesh(geometry, material);
+  scene.add(sphere);
+
+  document.getElementById('infoButton').addEventListener('click', () => {
+                const infoBox = document.getElementById('infoBox');
+                infoBox.style.display = infoBox.style.display === 'none' ? 'block' : 'none';
+            });
+  
+  // Draw great circles on the sphere
+  const N = new THREE.Vector3(0, r, 0);
+  const S1 = new THREE.Vector3(0.01, -r, 0);
+  const S2 = new THREE.Vector3(-0.01, -r, 0);
+  const S3 = new THREE.Vector3(0, -r, 0.01);
+  const S4 = new THREE.Vector3(0, -r, -0.01);
+  const E = new THREE.Vector3(r, 0, 0);
+  const W1 = new THREE.Vector3(-r, 0, 0.01);
+  const W2 = new THREE.Vector3(-r, 0, -0.01);
+  
+  drawCurve(createSphereArc(N, S1), new THREE.Color(0x0000ff));
+  drawCurve(createSphereArc(N, S2), new THREE.Color(0x0000ff));
+  drawCurve(createSphereArc(N, S3), new THREE.Color(0xff0000));
+  drawCurve(createSphereArc(N, S4), new THREE.Color(0xff0000));
+  drawCurve(createSphereArc(E, W1), new THREE.Color(0x00ff00));
+  drawCurve(createSphereArc(E, W2), new THREE.Color(0x00ff00));
+  
+  // Create cube with MeshBasicMaterial (updated geometry)
+  const cubeGeometry = new THREE.BoxGeometry(120, 120, 120);
+  const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true, transparent: true });
+  const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+  scene.add(cube);
+  
+  // Draw lines from cube vertices to sphere
+  for (let i = 0; i < cube.geometry.attributes.position.count; i++) {
+    const origin = new THREE.Vector3().fromBufferAttribute(cube.geometry.attributes.position, i);
+    const proj = projectOntoMesh(origin, sphere);
+    if (proj) {
+      drawLine(origin, proj, new THREE.Color(0xffcc00), true);
+    }
+  }
+  
+  // Draw arcs for projected cube edges
+  const edgeArray = [];
+  const positions = cube.geometry.attributes.position.array;
+  for (let i = 0; i < positions.length; i += 9) {
+    const va = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]);
+    const vb = new THREE.Vector3(positions[i+3], positions[i+4], positions[i+5]);
+    const vc = new THREE.Vector3(positions[i+6], positions[i+7], positions[i+8]);
+    
+    addEdgeToArray(edgeArray, [va, vb]);
+    addEdgeToArray(edgeArray, [vb, vc]);
+    addEdgeToArray(edgeArray, [vc, va]);
+  }
+  
+  // Draw great circles for projected mesh edges
+  edgeArray.forEach(edge => {
+    const P = projectOntoMesh(edge[0], sphere);
+    const Q = projectOntoMesh(edge[1], sphere);
+    if (P && Q) {
+      drawCurve(createSphereArc(P, Q), new THREE.Color(0xffff00));
+    }
+  });
+
+  // Slightly scale down sphere
+  sphere.scale.multiplyScalar(0.99);
+}
+
+function edgeEquals(e1, e2) {
+  return (e1[0].equals(e2[0]) && e1[1].equals(e2[1])) || (e1[0].equals(e2[1]) && e1[1].equals(e2[0]));
+}
+
+function addEdgeToArray(array, edge) {
+  if (!array.some(e => edgeEquals(e, edge))) {
+    array.push(edge);
+  }
+}
+
+function greatCircleFunction(P, Q) {
+  const angle = P.angleTo(Q);
+  return function(t) {
+    const X = new THREE.Vector3().addVectors(
+      P.clone().multiplyScalar(Math.sin((1 - t) * angle)),
+      Q.clone().multiplyScalar(Math.sin(t * angle))
+    ).divideScalar(Math.sin(angle));
+    return X;
+  };
+}
+
+function createSphereArc(P, Q) {
+  const sphereArc = new THREE.Curve();
+  sphereArc.getPoint = greatCircleFunction(P, Q);
+  return sphereArc;
+}
+
+function drawCurve(curve, color) {
+  const lineGeometry = new THREE.BufferGeometry();
+  lineGeometry.setFromPoints(curve.getPoints(100));
+  const lineMaterial = new THREE.LineBasicMaterial({ color: color });
+  const line = new THREE.Line(lineGeometry, lineMaterial);
+  scene.add(line);
+}
+
+function drawLine(P, Q, color, dashed) {
+  const lineGeometry = new THREE.BufferGeometry().setFromPoints([P, Q]);
+  const lineMaterial = dashed 
+    ? new THREE.LineDashedMaterial({ dashSize: 2, gapSize: 2, color: color }) 
+    : new THREE.LineBasicMaterial({ color: color });
+  const line = new THREE.Line(lineGeometry, lineMaterial);
+  scene.add(line);
+}
+
+function projectOntoMesh(point, mesh) {
+  const origin = point.clone();
+  const direction = point.clone().multiplyScalar(-1);
+  const ray = new THREE.Raycaster(origin, direction.normalize());
+  const intersection = ray.intersectObject(mesh);
+  return intersection.length > 0 ? intersection[0].point : null;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  render();
+  update();
+}
+
+function update() {
+  controls.update();
+  stats.update();
+}
+
+function render() {
+  renderer.render(scene, camera);
+}
+</script>
+
+</body>
+</html>
