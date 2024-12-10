@@ -75,6 +75,8 @@ var keyboard = new THREEx.KeyboardState();
 // custom global variables
 var video, videoImage, videoImageContext, videoTexture;
 
+var toggle = false;
+
 init();
 animate();
 
@@ -151,7 +153,7 @@ function init()
 	// video.id = 'video';
 	// video.type = ' video/ogg; codecs="theora, vorbis" ';
 	video.src = "videos/apt.mp4";
-	video.muted = false;
+	video.muted = true;
 	video.load(); // must call after setting/changing source
 	// video.play();
 	document.body.addEventListener('click', () => {
@@ -210,6 +212,8 @@ function animate()
 function update()
 {
 	if ( keyboard.pressed("p") )
+		toggle = !toggle;
+		video.muted = toggle;
 		video.play();
 		
 	if ( keyboard.pressed("space") )
