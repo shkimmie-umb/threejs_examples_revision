@@ -75,7 +75,7 @@ var keyboard = new THREEx.KeyboardState();
 // custom global variables
 var video, videoImage, videoImageContext, videoTexture;
 
-var toggle = false;
+var toggle = true;
 
 init();
 animate();
@@ -152,12 +152,13 @@ function init()
 	video = document.createElement( 'video' );
 	// video.id = 'video';
 	// video.type = ' video/ogg; codecs="theora, vorbis" ';
+	video.muted = toggle;
 	video.src = "videos/apt.mp4";
-	video.muted = true;
+	
 	video.load(); // must call after setting/changing source
 	// video.play();
-	document.body.addEventListener('click', () => {
-		video.muted = true;
+	document.body.addEventListener('keydown', () => {
+		// video.muted = true;
 		video.play().catch((error) => {
 			console.error('Error playing video:', error);
 		});
