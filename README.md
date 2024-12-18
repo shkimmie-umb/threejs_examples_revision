@@ -2,7 +2,7 @@
 
 <!-- ### Welcome to the best game ever created on Roblox! -->
 
-![image](./intro.png)
+![image](./screenshots/intro.png)
 
 # Description
 Three.js examples website (https://stemkoski.github.io/) has served quality source codes for all levels of developers for quick referencing working Three.js codes. However, it's been over a decade since the website's last update, while new Three.js developers looking for fresh starter code, like myself, are emerging every year around the world. I updated some of the stemkoski Three.js sample codes to the latest R171 version, compared to the outdated R60/R58 versions that are still being used. This codebase will provide up-to-date Three.js usages and motivate new developers to contribute more to the latest Three.js technology.
